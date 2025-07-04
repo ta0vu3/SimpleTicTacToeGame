@@ -1,4 +1,3 @@
-
 // ****** Stats Class **********
 
 
@@ -6,19 +5,19 @@ import java.util.*;
 
 // KEEPS TRACK OF THE SCORES
 
-public class Stats {
+public class ScoreBoard {
     int currentUsersOnRecord;
     int highScore;
     int userScore;
     Users scoreBoard[];
 
     // Constructor to build the array
-    public Stats(int usersOnBoard) {
+    public ScoreBoard(int usersOnBoard) {
         this.currentUsersOnRecord = usersOnBoard;
         scoreBoard = new Users[usersOnBoard];
     }
 
-    public Stats(Users[] scoreBoard) {
+    public ScoreBoard(Users[] scoreBoard) {
         super();
         this.scoreBoard = scoreBoard;
     }
