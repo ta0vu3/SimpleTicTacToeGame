@@ -1,7 +1,7 @@
 public class Users {
     private final char mark;    // 'X' or 'O'
     private final String name;
-    static int wins;
+    public int wins;
 
     public Users(String name, char mark) {
         this.name = name;
