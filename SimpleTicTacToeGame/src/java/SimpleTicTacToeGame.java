@@ -6,23 +6,16 @@ import java.util.List;
 import javax.swing.*;
 
 public class SimpleTicTacToeGame extends JFrame implements ActionListener {
-    // Game state
-    private final char[][] symbols = new char[3][3];
-    private final JButton[][] buttons = new JButton[3][3];
-    private boolean turnX = true;
-    private boolean vsComputer = false;
+    private final char[][] boardState = new char[3][3];
+    private final JButton[][] buttons  = new JButton[3][3];
+    private final JLabel announcement  = new JLabel();
+    private final JLabel scoreLabel    = new JLabel();
+    private final JButton resetScores  = new JButton("Reset Scores");
 
-    // Players & scores
-    private String playerXName = "Player X";
-    private String playerOName = "Player O";
-    private int playerXWins = 0;
-    private int playerOWins = 0;
-    private int tieCount    = 0;
-
-    // UI components
-    private final JLabel announcement = new JLabel();
-    private final JLabel scoreBoard   = new JLabel();
-    private final JButton resetScoresButton = new JButton("Reset Scores");
+    private Users xPlayer, oPlayer;
+    private ScoreBoard scoreBoard;
+    private boolean vsComputer;
+    private boolean xTurn = true;
 
     public SimpleTicTacToeGame() {
         super("Tic-Tac-Toe");
@@ -31,154 +24,166 @@ public class SimpleTicTacToeGame extends JFrame implements ActionListener {
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        initUI();         // build panels & buttons
-        askGameMode();    // choose mode, get names, reset scores & board
+        setupModeAndPlayers();
+        initUI();
+        resetBoard();
+    }
+
+    private void setupModeAndPlayers() {
+        String[] options = {"Player vs Player", "Player vs Computer"};
+        int choice = JOptionPane.showOptionDialog(
+            this,
+            "Select mode:",
+            "Game Mode",
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            options,
+            options[0]
+        );
+        vsComputer = (choice == 1);
+
+        String nameX = askName("Player 1 (X)");
+        xPlayer = new Users(nameX, 'X');
+
+        String nameO = vsComputer
+            ? "Computer"
+            : askName("Player 2 (O)");
+        oPlayer = new Users(nameO, 'O');
+
+        scoreBoard = new ScoreBoard(xPlayer, oPlayer);
+    }
+
+    private String askName(String prompt) {
+        String s = JOptionPane.showInputDialog(this, "Enter " + prompt + " name:");
+        return (s != null && !s.trim().isEmpty()) ? s.trim() : prompt;
     }
 
     private void initUI() {
-        // Top announcement
-        announcement.setHorizontalAlignment(SwingConstants.CENTER);
+        // --- Announcement (top) ---
         announcement.setFont(new Font("SansSerif", Font.BOLD, 18));
+        announcement.setHorizontalAlignment(SwingConstants.CENTER);
         add(announcement, BorderLayout.NORTH);
 
-        // Left scoreboard + reset scores button
-        scoreBoard.setFont(new Font("SansSerif", Font.PLAIN, 16));
-        resetScoresButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        resetScoresButton.addActionListener(e -> {
-            playerXWins = 0;
-            playerOWins = 0;
-            tieCount    = 0;
-            updateScoreBoard();
+        // --- Score panel (left) ---
+        scoreLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        resetScores.setAlignmentX(Component.CENTER_ALIGNMENT);
+        resetScores.addActionListener(e -> {
+            scoreBoard.reset();
+            refreshScoreDisplay();
         });
 
         JPanel left = new JPanel();
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
         left.setBorder(BorderFactory.createEmptyBorder(20,20,20,20));
-        left.add(scoreBoard);
-        left.add(Box.createRigidArea(new Dimension(0, 10)));
-        left.add(resetScoresButton);
+        left.add(scoreLabel);
+        left.add(Box.createVerticalStrut(10));
+        left.add(resetScores);
         add(left, BorderLayout.WEST);
 
-        // Center board
-        JPanel board = new JPanel(new GridLayout(3,3));
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 3; j++) {
-                JButton btn = new JButton(" ");
-                btn.setFont(btn.getFont().deriveFont(100f));
-                btn.setActionCommand(i + " " + j);
-                btn.addActionListener(this);
-                buttons[i][j] = btn;
-                board.add(btn);
+        // --- Tic-Tac-Toe grid (center) ---
+        JPanel grid = new JPanel(new GridLayout(3,3));
+        for (int r = 0; r < 3; r++) {
+            for (int c = 0; c < 3; c++) {
+                JButton b = new JButton(" ");
+                b.setFont(b.getFont().deriveFont(100f));
+                b.setActionCommand(r + ":" + c);
+                b.addActionListener(this);
+                buttons[r][c] = b;
+                grid.add(b);
             }
-        add(board, BorderLayout.CENTER);
-    }
-
-    private void askGameMode() {
-        String[] opts = {"Player vs Player", "Player vs Computer"};
-        int choice = JOptionPane.showOptionDialog(
-            this,
-            "Select opponent type:",
-            "Game Mode",
-            JOptionPane.DEFAULT_OPTION,
-            JOptionPane.QUESTION_MESSAGE,
-            null,
-            opts,
-            opts[0]
-        );
-
-        vsComputer = (choice == 1);
-        getPlayerNames();
-        playerXWins = 0;
-        playerOWins = 0;
-        tieCount    = 0;
-        updateScoreBoard();
-        resetBoard();
-    }
-
-    private void getPlayerNames() {
-        String x = JOptionPane.showInputDialog(this, "Enter Player 1's name (X):");
-        if (x != null && !x.trim().isEmpty()) playerXName = x.trim();
-
-        if (vsComputer) {
-            playerOName = "Computer";
-        } else {
-            String o = JOptionPane.showInputDialog(this, "Enter Player 2's name (O):");
-            if (o != null && !o.trim().isEmpty()) playerOName = o.trim();
         }
+        add(grid, BorderLayout.CENTER);
+
+        refreshScoreDisplay();
+        updateAnnouncement();
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        String[] parts = e.getActionCommand().split(" ");
-        int r = Integer.parseInt(parts[0]), c = Integer.parseInt(parts[1]);
+        String[] rc = e.getActionCommand().split(":");
+        int r = Integer.parseInt(rc[0]),
+            c = Integer.parseInt(rc[1]);
         if (!buttons[r][c].isEnabled()) return;
 
-        makeMove(r, c, turnX ? 'X' : 'O');
-        if (checkEndOfRound(turnX ? 'O' : 'X')) return;
+        // 1) Human move
+        Users mover = xTurn ? xPlayer : oPlayer;
+        markCell(r, c, mover.getMark());
 
-        if (vsComputer && !turnX) {
-            doComputerMove();
-            checkEndOfRound('O');
+        if (resolveRound(mover)) return;
+
+        // 2) Flip turn & announce
+        xTurn = !xTurn;
+        updateAnnouncement();
+
+        // 3) If vsComputer and now O's turn, let CPU move
+        if (vsComputer && !xTurn) {
+            Point p = computeComputerMove();
+            markCell(p.x, p.y, oPlayer.getMark());
+            if (resolveRound(oPlayer)) return;
+            xTurn = !xTurn;
+            updateAnnouncement();
         }
     }
 
-    private void makeMove(int r, int c, char mark) {
-        buttons[r][c].setText(String.valueOf(mark));
-        buttons[r][c].setEnabled(false);
-        symbols[r][c] = mark;
-        turnX = (mark == 'O');
-        updateAnnouncement();
-    }
-
-    private void doComputerMove() {
-        List<Point> empties = new ArrayList<>();
+    private Point computeComputerMove() {
+        List<Point> free = new ArrayList<>();
         for (int i = 0; i < 3; i++)
             for (int j = 0; j < 3; j++)
-                if (symbols[i][j] == '.') empties.add(new Point(i, j));
-
-        if (empties.isEmpty()) return;
-        Point p = empties.get(new Random().nextInt(empties.size()));
-        makeMove(p.x, p.y, 'O');
+                if (boardState[i][j] == '.') free.add(new Point(i, j));
+        return free.get(new Random().nextInt(free.size()));
     }
 
-    private boolean checkEndOfRound(char lastMark) {
-        if (won(lastMark)) {
-            String winner = lastMark == 'X' ? playerXName : playerOName;
-            announcement.setText("🎉 " + winner + " wins!");
-            if (lastMark == 'X') playerXWins++; else playerOWins++;
-            updateScoreBoard();
-            endGameDialog(winner + " has won!");
+    private void markCell(int r, int c, char m) {
+        boardState[r][c] = m;
+        JButton b = buttons[r][c];
+        b.setText(String.valueOf(m));
+        b.setEnabled(false);
+    }
+
+    /**
+     * Returns true if this round ended (win or tie).
+     * In that case, it records the result, pops up the dialog,
+     * and resets or exits.
+     */
+    private boolean resolveRound(Users u) {
+        char m = u.getMark();
+        if (isWin(m)) {
+            announcement.setText("🎉 " + u.getName() + " wins!");
+            scoreBoard.recordWin(u);
+            refreshScoreDisplay();
+            endRound(u.getName() + " has won!");
             return true;
         }
-        if (tie()) {
-            tieCount++;
+        if (isTie()) {
             announcement.setText("🤝 It's a tie!");
-            updateScoreBoard();
-            endGameDialog("It's a tie!");
+            scoreBoard.recordTie();
+            refreshScoreDisplay();
+            endRound("It's a tie!");
             return true;
         }
         return false;
     }
 
-    private boolean won(char m) {
-        for (int i = 0; i < 3; i++)
-            if ((symbols[i][0] == m && symbols[i][1] == m && symbols[i][2] == m) ||
-                (symbols[0][i] == m && symbols[1][i] == m && symbols[2][i] == m))
+    private boolean isWin(char m) {
+        for (int i = 0; i < 3; i++) {
+            if ((boardState[i][0]==m && boardState[i][1]==m && boardState[i][2]==m) ||
+                (boardState[0][i]==m && boardState[1][i]==m && boardState[2][i]==m))
                 return true;
-
-        return (symbols[0][0] == m && symbols[1][1] == m && symbols[2][2] == m) ||
-               (symbols[0][2] == m && symbols[1][1] == m && symbols[2][0] == m);
+        }
+        return (boardState[0][0]==m && boardState[1][1]==m && boardState[2][2]==m) ||
+               (boardState[0][2]==m && boardState[1][1]==m && boardState[2][0]==m);
     }
 
-    private boolean tie() {
-        for (char[] row : symbols)
+    private boolean isTie() {
+        for (char[] row : boardState)
             for (char cell : row)
                 if (cell == '.') return false;
         return true;
     }
 
-    private void endGameDialog(String msg) {
-        disableAllButtons();
+    private void endRound(String msg) {
+        disableAllCells();
         int opt = JOptionPane.showConfirmDialog(
             this,
             msg + "\nPlay again?",
@@ -193,43 +198,29 @@ public class SimpleTicTacToeGame extends JFrame implements ActionListener {
         }
     }
 
-    private void disableAllButtons() {
+    private void disableAllCells() {
         for (var row : buttons)
             for (var b : row)
                 b.setEnabled(false);
     }
 
     private void resetBoard() {
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 3; j++) {
-                symbols[i][j] = '.';
-                buttons[i][j].setText(" ");
-                buttons[i][j].setEnabled(true);
+        for (int r = 0; r < 3; r++)
+            for (int c = 0; c < 3; c++) {
+                boardState[r][c] = '.';
+                buttons[r][c].setText(" ");
+                buttons[r][c].setEnabled(true);
             }
-        turnX = true;
+        xTurn = true;
         updateAnnouncement();
     }
 
+    private void refreshScoreDisplay() {
+        scoreLabel.setText(scoreBoard.getFormattedScores());
+    }
+
     private void updateAnnouncement() {
-        String who = turnX ? playerXName : playerOName;
-        char mark = turnX ? 'X' : 'O';
-        announcement.setText("▶︎ " + who + "'s turn (" + mark + ")");
-    }
-
-    private void updateScoreBoard() {
-        scoreBoard.setText(
-            "<html><div style='text-align:center;'>"
-          + "🏆 Score<br><br>"
-          + playerXName + ": " + playerXWins + "<br>"
-          + playerOName + ": " + playerOWins + "<br>"
-          + "Ties: "   + tieCount
-          + "</div></html>"
-        );
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            new SimpleTicTacToeGame().setVisible(true);
-        });
+        Users who = xTurn ? xPlayer : oPlayer;
+        announcement.setText("▶︎ It is " + who.getName() + "'s turn (" + who.getMark() + ")");
     }
 }

@@ -1,72 +1,41 @@
-// ****** Stats Class **********
-
-
-import java.util.*;
-
-// KEEPS TRACK OF THE SCORES
-
 public class ScoreBoard {
-    int currentUsersOnRecord;
-    int highScore;
-    int userScore;
-    Users scoreBoard[];
+    private final Users xPlayer;
+    private final Users oPlayer;
+    private int ties;
 
-    // Constructor to build the array
-    public ScoreBoard(int usersOnBoard) {
-        this.currentUsersOnRecord = usersOnBoard;
-        scoreBoard = new Users[usersOnBoard];
+    public ScoreBoard(Users xPlayer, Users oPlayer) {
+        this.xPlayer = xPlayer;
+        this.oPlayer = oPlayer;
+        this.ties = 0;
     }
 
-    public ScoreBoard(Users[] scoreBoard) {
-        super();
-        this.scoreBoard = scoreBoard;
+    public void recordWin(Users whoWon) {
+        whoWon.incrementWins();
     }
 
-    // CREATE USER IN ARRAY OR ADD NEW SCORE TO CURRENT USER
-    public boolean addUser(Users newUser) {
-        checkSpaceOnBoard();
-        for (int i = 0; i < currentUsersOnRecord; i++) {
-            if (newUser.getFirstName().compareToIgnoreCase(scoreBoard[i].getFirstName()) == 0) {
-                scoreBoard[i] = newUser;
-                return true;
-            } else {
-                scoreBoard[currentUsersOnRecord] = newUser;
-                currentUsersOnRecord++;
-            }
-        }
-        return false;
-
+    public void recordTie() {
+        ties++;
     }
 
-    // INCREASE BOARD SIZE AS NEEDED
-    public void checkSpaceOnBoard() {
-        if (currentUsersOnRecord >= scoreBoard.length) {
-            Users[] biggerBoard = new Users[scoreBoard.length + 2];
-            for (int i = 0; i < currentUsersOnRecord; currentUsersOnRecord++) {
-                biggerBoard[i] = scoreBoard[i];
-            }
-            scoreBoard = biggerBoard;
-        }
+    public int getTies() {
+        return ties;
     }
 
-    // SORT BOARD AND DISPLAY HIGHEST SCORE
-    public String highestScore() {
-        Arrays.sort(scoreBoard, Collections.reverseOrder());
-        return scoreBoard[0].getFirstName() + " has the highest score of "
-                + scoreBoard[0].getScore();
+    public void reset() {
+        xPlayer.incrementWins();   // undo increments
+        oPlayer.incrementWins();
+        xPlayer.wins = 0;          // reset directly
+        oPlayer.wins = 0;
+        ties = 0;
     }
 
-    // DISPLAY FULL LEADERBOARD
-    @Override
-    public String toString() {
-        for (int i = 0; i < currentUsersOnRecord; i++) {
-            // replace system.out.print with the board in the game
-            return (scoreBoard[i].getFirstName() + " "
-            + scoreBoard[i].getLastInitial() + "\t "
-                    + scoreBoard[i].getScore() + "\n");
-        }
-
-        return "Leader Board";
+    /** Returns a formatted HTML string for display. */
+    public String getFormattedScores() {
+        return "<html><div style='text-align:center;'>"
+             + "🏆 Scores<br><br>"
+             + xPlayer.getName() + ": " + xPlayer.getWins() + "<br>"
+             + oPlayer.getName() + ": " + oPlayer.getWins() + "<br>"
+             + "Ties: " + ties
+             + "</div></html>";
     }
-
 }

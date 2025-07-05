@@ -1,43 +1,27 @@
-// ******** Users Class ************
-
 public class Users {
-    private String firstName;
-    private char lastInitial;
-    private int score;
+    private final char mark;    // 'X' or 'O'
+    private final String name;
+    static int wins;
 
-    public Users(String userFirstName, char userLastInitial, int userScore) {
-        firstName = userFirstName;
-        lastInitial = userLastInitial;
-        score = userScore;
+    public Users(String name, char mark) {
+        this.name = name;
+        this.mark = mark;
+        this.wins = 0;
     }
 
-    public String getFirstName() {
-        return firstName;
+    public String getName() {
+        return name;
     }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
+    public char getMark() {
+        return mark;
     }
 
-    public char getLastInitial() {
-        return lastInitial;
+    public int getWins() {
+        return wins;
     }
 
-    public void setLastInitial(char lastInitial) {
-        this.lastInitial = lastInitial;
+    public void incrementWins() {
+        wins++;
     }
-    public int getScore() {
-        return score;
-    }
-
-    public void setScore(int score) {
-        this.score = score;
-    }
-
-    @Override
-    public String toString() {
-        return "User: " + firstName + lastInitial + " Current Score: "+ score;
-    }
-
 }
-
